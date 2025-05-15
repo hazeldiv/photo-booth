@@ -1,95 +1,94 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client"
+
+import {Camera} from "react-camera-pro";
+import { JSX, useEffect, useRef, useState } from "react";
+import ReactToPrint from 'react-to-print';
+
+
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const camera = useRef(null)
+  const [image, setImage] = useState<any>([]);
+  const [imageElm, setImageElm] = useState<JSX.Element[]>([])
+  const [countdown, setCountDown] = useState(-1)
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+  const handlePrint = () => {
+    if (imageElm.length<3) return
+
+    const originalContents = document.body.innerHTML;
+    let elm = ""
+    for (let i=0;i<image.length;i++) {
+      elm += `<img src=${image[i]} alt="" style="height: auto; width: 400px"/>`
+    }
+    document.body.innerHTML = `<div style="display: flex; flex-direction: column; align-items: center; gap: 20px">${elm}</div>`
+    window.print();
+    document.body.innerHTML = originalContents;
+    window.location.reload();
+  }
+
+  useEffect(() => {
+    if (countdown == 0) {
+      const photo = camera.current.takePhoto();
+                if (imageElm.length<3) {
+                  setImageElm(prevItems => [...prevItems, <img src={photo} style={{width: "200px", height:"auto"}}/>])
+                  setImage(prevItems => [...prevItems, photo])
+                } else {
+                  setImageElm([imageElm[0],imageElm[1],<img src={photo} style={{width: "200px", height:"auto"}}/>])
+                  setImage([image[0],image[1],photo])
+                }
+                
+      setCountDown(-1)
+      return;
+    }
+
+    const interval = setInterval(() => {
+      if (countdown>0) {
+        setCountDown(prev => prev - 1)
+      }
+      
+    }, 1000);
+
+    return () => clearInterval(interval)
+  }, [countdown]);
+  
+  return (
+    <div>
+      <div style={{marginInline: "auto", width: "800px", height: "auto"}}>
+        <Camera ref={camera} errorMessages={{
+          noCameraAccessible: 'No camera found',
+          permissionDenied: 'Camera access was denied',
+          switchCamera: 'Unable to switch camera',
+          canvas: 'Canvas error',
+        }} aspectRatio={4/3}/>
+      </div>
+      <div style={{display: "flex", alignItems: "center", flexDirection: "column"}}>
+        <div style={{display: "flex", alignItems: "center"}}>
+          <button
+            onClick={() => {
+              setCountDown(3)
+              window.scrollTo({
+                top: 0,
+                behavior: 'smooth',
+              });
+            }}
+            style={{width: "150px", height: "40px", margin: "20px"}}
+          >{image.length==3 ? "Retry" : "Take Photo"}</button>
+          <button style={{width: "150px", height: "40px", margin: "20px"}} onClick={handlePrint}>Print</button>
         </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div style={{display: "flex", alignItems: "center", gap: "20px"}}>
+            {imageElm}
+        </div>
+      </div>
+      {countdown>0 ? 
+      <div style={{position: "fixed", background: "rgba(0,0,0,0.5)", width: "100%", height: "100%", top: "0", color: "white", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "200px"}}>
+        {countdown}
+      </div> : countdown==0 ?
+        <div style={{position: "fixed", background: "white", width: "100%", height: "100%", top: "0", color: "white", display: "flex", justifyContent: "center", alignItems: "center", fontSize: "200px"}}></div>
+        : <div></div>
+      }
+      
+      
     </div>
+    
   );
 }
